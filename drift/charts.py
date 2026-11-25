@@ -105,8 +105,13 @@ def add_event_annotations(
                 text=label,
                 font=dict(size=10, color=MUTED),
                 textangle=-90,
-                yanchor="bottom",
+                yanchor="top",
+                xanchor="left",
+                xshift=3,
+                bgcolor="rgba(255,255,255,0.85)",
+                borderpad=2,
             ),
+            annotation_position="top right",
         )
     return fig
 
