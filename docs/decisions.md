@@ -92,7 +92,7 @@ Every design choice and the reason behind it.
 
 ### NaN handling
 **Decision:** Fill NaN in numeric features with 0 after creating missing indicators. LR pipeline uses median imputation + StandardScaler; GBM handles NaN natively via HistGradientBoosting but all-NaN columns (like InitialInterestRate in FY1991-1999) need the 0 fill to prevent binning failure.
-**Reason:** InitialInterestRate is 100% missing in SBA files before FY2000. The missing indicator (interest_rate_missing) carries all the information; the 0 fill is a no-information default.
+**Reason:** InitialInterestRate is 100% missing in SBA files before FY2009. The missing indicator (interest_rate_missing) carries all the information; the 0 fill is a no-information default.
 
 ### Rare category grouping
 **Decision:** Categories below 0.5% of training rows grouped to "Other". Fitted on training window only. Unseen categories at scoring time → "Other".
@@ -139,7 +139,7 @@ Every design choice and the reason behind it.
 ### SBA drift replay results
 **Decision:** All 23 monitoring years (FY1996–FY2018) flagged as red alerts. This is correct — the GBM baseline trained on FY1991–1995 becomes increasingly outdated.
 **Key findings:**
-- **Dominant drift driver:** `interest_rate_missing` (PSI up to 18.4). Interest rate was 100% missing in FY1991–1999 reference data; it appears from FY2000 onward. `FixedorVariableInterestInd` (PSI 18.0) and `InitialInterestRate` (PSI 15.1) show the same pattern.
+- **Dominant drift driver:** `interest_rate_missing` (PSI up to 18.4). Interest rate was 100% missing for every loan through FY2008, 11% missing in FY2009, and fully populated from FY2010 onward. `FixedorVariableInterestInd` (PSI 18.0) and `InitialInterestRate` (PSI 15.1) show the same pattern.
 - **Score PSI timeline:** Starts at 0.003 (FY1996, green), rises to 0.12 (FY2005, amber), peaks at 1.1 (FY2012, red), then gradually declines.
 - **Crisis spike:** Default rates jump from 6–8% (FY1996–2004) to 22–28% (FY2006–2008), then drop to 3–5% (FY2010–2018). The 2007–2008 financial crisis is clearly visible.
 - **Model degradation:** GBM AUC falls from 0.9440 (FY1996) to 0.60–0.73 for FY1999–2018. The model loses about 20pp AUC over the monitoring window.
@@ -173,7 +173,7 @@ Every design choice and the reason behind it.
 - **Crisis resilience:** Even with retraining, FY2006–2010 AUCs are 0.63–0.80. The rolling window trains on pre-crisis data (FY1997–1999) during the crisis, limiting recovery. The model catches up after FY2011 when crisis-era data enters the training window.
 - **6 rejections:** Champions were kept at FY2000, FY2001, FY2007, FY2008, FY2015, FY2017 — cases where the challenger didn't beat the champion by the promotion threshold.
 
-**Reason:** Honest results. With pervasive drift (structural data changes from FY2000 interest rate availability), the drift trigger fires every year. The practical insight: for datasets with persistent structural drift, scheduled retraining is sufficient — the drift trigger adds no value over a fixed schedule. Drift-triggered retraining would add value in datasets where drift is episodic.
+**Reason:** Honest results. With pervasive drift (structural data change when interest rates began to be recorded in FY2009), the drift trigger fires every year. The practical insight: for datasets with persistent structural drift, scheduled retraining is sufficient — the drift trigger adds no value over a fixed schedule. Drift-triggered retraining would add value in datasets where drift is episodic.
 
 ### Final evaluation scored once
 **Decision:** FY2019–2021 scored exactly once with each strategy's final champion model (gbm_FY2009-2011 for the retrained strategies, the original baseline for "never"). Results never used to choose anything.

@@ -760,8 +760,9 @@ with tabs[tab_idx]:
                 f'<span class="alert-badge alert-red">Red: {n_red}</span>'
                 "</div>"
                 "<div style='margin-top:16px; font-size:0.85rem; color:#64748b;'>"
-                "All monitoring periods show red drift alerts due to structural "
-                "changes in interest rate reporting from FY2000 and the 2007 to 2009 crisis."
+                "All monitoring periods show red drift alerts, driven by the 2007 to 2009 "
+                "crisis and by SBA starting to record interest rates in FY2009, a field "
+                "that was empty for every loan before then."
                 "</div>"
                 "</div>",
                 unsafe_allow_html=True,

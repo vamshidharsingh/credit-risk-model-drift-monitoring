@@ -51,7 +51,7 @@ Each year gets an alert level:
 | Amber | 0.10–0.25 | Moderate drift, investigate |
 | Red | > 0.25 | Significant drift, consider retraining |
 
-**Result**: All 23 monitoring years are red. The biggest driver is `interest_rate_missing` — interest rate data was 100% missing in the reference period (FY1991–1995) but became available from FY2000 onward. This structural data change, combined with the financial crisis and shifting lending standards, means the model is always operating in a fundamentally different environment than it was trained on.
+**Result**: All 23 monitoring years are red. The biggest driver is `interest_rate_missing` — interest rate data was 100% missing for every loan up to FY2008, 11% missing in FY2009, and fully populated from FY2010 onward. This structural data change, combined with the financial crisis and shifting lending standards, means the model is always operating in a fundamentally different environment than it was trained on.
 
 ### Stage 4: Retraining Strategies
 
@@ -99,7 +99,7 @@ The Streamlit dashboard visualises all of this in five interactive tabs:
 
 **Overview tab**: Start here. The KPI cards give the headline numbers. The alert timeline is all red — that's the honest result, not a bug. The default rate chart shows the crisis spike (27.5% in FY2007) and post-crisis normalisation (3–5% from FY2010).
 
-**Drift Analysis tab**: The PSI chart shows drift building slowly (FY1996–2005), then accelerating through the crisis and peaking at PSI 1.1 by FY2012. The heatmap reveals the structural cause — interest rate features dominate after FY2000.
+**Drift Analysis tab**: The PSI chart shows drift building slowly (FY1996–2005), then accelerating through the crisis and peaking at PSI 1.1 by FY2012. The heatmap reveals the structural cause — interest rate features dominate from FY2009.
 
 **Model Performance tab**: This is the key chart. The gray "Never Retrain" line falls and stays low. The blue/green retrained lines recover to 0.95+ by FY2013, once the rolling window catches up. During the crisis (FY2007–2010), even retrained models struggle — a universal limitation when the training data doesn't yet include the current regime.
 
