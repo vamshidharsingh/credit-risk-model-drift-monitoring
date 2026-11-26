@@ -68,9 +68,15 @@ Every design choice and the reason behind it.
 
 **Reason:** Follows the spec rule: first 5 usable years for reference, last 3 for final evaluation, middle for monitoring. This gives a long monitoring window that spans the 2007-2009 financial crisis and 2020 pandemic — ideal for drift detection.
 
-### Freddie Mac split (deferred)
-**Decision:** Split years will be computed when data is downloaded, using the same rule (first 5 usable, last 3 final eval, middle monitoring).
-**Reason:** Freddie Mac data not yet available. The split function is written and tested.
+### Freddie Mac split (fixed)
+**Decision:**
+- **Reference (5 years):** 1999–2003
+- **Monitoring (17 years):** 2004–2020
+- **Final evaluation (3 years):** 2021–2023
+
+25 usable vintage years total (1999–2023), from the public sample files. Computed by the same `compute_split` rule used for SBA: first 5 usable years for reference, last 3 for final evaluation, middle for monitoring.
+
+**Reason:** One split rule applied to both real datasets, so the two results are directly comparable. The 24-month outcome window makes 2023 vintages usable against the performance cutoff, where SBA's 5-year window stops at FY2021.
 
 ### UCI split
 **Decision:** 40% reference set + 20 simulated periods for synthetic drift benchmark. No time-ordered split (all data is from one 6-month window).
@@ -151,6 +157,17 @@ Every design choice and the reason behind it.
 **Decision:** Computed AUC for all monitoring years using retrospective labels (all outcomes known by 2026-09-30). In a production system, AUC would only be computable after the 5-year outcome window for each year.
 **Reason:** This is a retrospective analysis. The drift metrics (PSI, KS, chi-square) are computable in real-time since they don't need labels. AUC is a bonus metric that validates whether drift corresponds to performance degradation.
 
+### Freddie Mac drift replay results
+**Decision:** All 17 monitoring years (2004–2020) replayed against the 1999–2003 reference. Alert mix: 1 green, 3 amber, 13 red.
+**Key findings:**
+- **Alerts are driven entirely by feature drift.** Score PSI never leaves green, peaking at 0.058 in 2016. Every red period comes from the feature-count trigger, not from score drift. Monitoring the model output alone would have detected nothing across the whole window.
+- **Dominant drift drivers:** `channel` and `original_interest_rate` appear in the top three drifting features in all 13 red periods; `original_upb` in 8 of them.
+- **Alert timeline:** 2004 green, 2005–2007 amber, 2008 onward red. The calm years sit at the start, unlike SBA.
+- **Model degradation:** GBM AUC falls from 0.8087 (2004) to a low of 0.6795 (2019), recovering slightly to 0.7029 (2020).
+- **Default rates:** 0.65% to 6.19%, peaking on 2007 vintages.
+
+**Reason:** This is the contrast case for SBA. Because Freddie Mac has genuinely quiet periods, it is the dataset where drift-triggered retraining can differ from a fixed schedule, which is what makes the Stage 4 comparison meaningful.
+
 ## Stage 4: Retraining Strategies
 
 ### Champion/challenger comparison
@@ -175,6 +192,23 @@ Every design choice and the reason behind it.
 
 **Reason:** Honest results. With pervasive drift (structural data change when interest rates began to be recorded in FY2009), the drift trigger fires every year. The practical insight: for datasets with persistent structural drift, scheduled retraining is sufficient — the drift trigger adds no value over a fixed schedule. Drift-triggered retraining would add value in datasets where drift is episodic.
 
+### Freddie Mac retraining results
+**Decision:** Same three strategies, same champion/challenger rules, run across 2004–2020 with final evaluation on 2021–2023.
+
+| Strategy | Attempts | Promotions | Mean monitoring AUC | Final eval AUC |
+|---|---|---|---|---|
+| Never retrain | 0 | 0 | 0.7866 | 0.7532 |
+| Scheduled | 16 | 9 | 0.7970 | 0.7836 |
+| Drift-triggered | 13 | 9 | 0.7970 | 0.7836 |
+
+**Key findings:**
+- **The strategies separate here, unlike SBA.** Drift-triggered reaches identical accuracy to the yearly schedule using 13 retraining attempts instead of 16, because 4 of the 17 periods are green or amber and the trigger skips them. Three fewer retrain and validation cycles at no cost to performance.
+- **Smaller gain than SBA.** Retraining is worth about 3pp of final-evaluation AUC here (0.7532 to 0.7836), against 18pp on SBA, because mortgage drift in this window is gentler and the 24-month outcome window keeps the rolling training data much fresher.
+- **Per-year final evaluation:** never 0.7555 / 0.7310 / 0.7729; retrained 0.7771 / 0.7808 / 0.7928 for 2021 / 2022 / 2023.
+- **7 rejections** out of 16 scheduled attempts, same 0.005 promotion threshold.
+
+**Reason:** This is the result that makes the project's recommendation defensible. On SBA alone the only honest conclusion was "a fixed schedule is as good as a trigger". With Freddie Mac the generalisation becomes: alert-driven retraining is never worse than a fixed schedule, and is cheaper whenever drift is episodic rather than constant.
+
 ### Final evaluation scored once
-**Decision:** FY2019–2021 scored exactly once with each strategy's final champion model (gbm_FY2009-2011 for the retrained strategies, the original baseline for "never"). Results never used to choose anything.
+**Decision:** FY2019–2021 (SBA) and 2021–2023 (Freddie Mac) scored exactly once with each strategy's final champion model (gbm_FY2009-2011 for the retrained SBA strategies, the original baseline for "never"). Results never used to choose anything.
 **Reason:** Per spec: "Final evaluation years scored once, never used to choose anything."
